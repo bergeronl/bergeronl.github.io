@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Upcoming meetings</title>
+    </head>
+    <body>
+        <style>
+            body {
+                background-color: rgb(48, 47, 47);
+                color: white;
+            }
+
+            .w-full {
+                width: 100%;
+            }
+
+            .w-half {
+                width: 50%;
+            }
+
+            .w-third {
+                width: 33%;
+            }
+
+            button {
+                font-size: xxx-large;
+                min-width: 100px;
+                min-height: 75px;
+            }
+
+            #outer-container {
+                display: flex;
+                flex-direction: column;
+            }
+
+            #calendar-container {
+                display: flex;
+                flex-direction: row;
+
+                margin: 1em;
+            }
+
+            #calendar-date {
+                width: 75%;
+
+                font-size: xx-large;
+            }
+
+            #calendar-time {
+                width: 25%;
+                text-align: right;
+
+                font-size: xx-large;
+            }
+
+            #meetings-container {
+                display: flex;
+                flex-direction: row;
+            }
+
+            #meeting-list {
+                width: 75%;
+
+                display: flex;
+                flex-direction: column;
+            }
+
+            #meeting-new {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-content: flex-start;
+
+                width: 25%;
+                font-size: xxx-large;
+            }
+
+            .meeting {
+                background-color: rgb(75, 104, 114);
+                margin: 0.25em;
+                padding: 0.25em;
+
+                display: flex;
+                flex-direction: row;
+                align-items: stretch;
+            }
+
+            .meeting.meeting_past {
+                background-color: rgb(61, 61, 61);
+            }
+
+            .meeting-info {
+                padding: 0.5em;
+                font-size: x-large;
+            }
+
+            #meeting-new > div {
+                text-align: center;
+            }
+        </style>
+
+        <div id="outer-container">
+            <div id="calendar-container">
+                <div id="calendar-date" class="w-half"></div>
+                <div id="calendar-time" class="w-half"></div>
+            </div>
+            <div id="meetings-container">
+                <div id="meeting-list">
+                    <!-- this is filled programmatically -->
+                </div>
+                <div id="meeting-new">
+                    <div class="w-half">
+                        <button onclick="incrementHours()">▲</button>
+                    </div>
+                    <div class="w-half">
+                        <button onclick="incrementMinutes()">▲</button>
+                    </div>
+
+                    <div id="meeting-new-hours" class="w-half">08</div>
+                    <div id="meeting-new-minutes" class="w-half">00</div>
+
+                    <div class="w-half">
+                        <button onclick="decrementHours()">▼</button>
+                    </div>
+                    <div class="w-half">
+                        <button onclick="decrementMinutes()">▼</button>
+                    </div>
+                    <div class="w-full">
+                        <button onclick="addMeeting()">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            let remainingLabels = [];
+            
+            let meetings = [
+                {
+                    hours: 9,
+                    minutes: 0
+                }
+            ];
+
+            function formatTime(hours, minutes) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}`;
+            }
+
+            function handleDelete(evt) {
+                const idx = Number(evt.target.dataset['idx']);
+                meetings = meetings.filter((m, mIdx) => mIdx !== idx);
+                updateMeetingElements();
+            }
+
+            function incrementHours() {
+                const hoursEl = document.getElementById('meeting-new-hours');
+                let hours = Number(hoursEl.innerText);
+
+                hours += 1;
+                if (hours > 23) {
+                    hours = 0;
+                }
+
+                hoursEl.innerText = hours.toString().padStart(2, '0');
+            }
+
+            function decrementHours() {
+                const hoursEl = document.getElementById('meeting-new-hours');
+                let hours = Number(hoursEl.innerText);
+
+                hours -= 1;
+                if (hours < 0) {
+                    hours = 23;
+                }
+
+                hoursEl.innerText = hours.toString().padStart(2, '0');
+            }
+
+            function incrementMinutes() {
+                const minutesEl = document.getElementById('meeting-new-minutes');
+                let minutes = Number(minutesEl.innerText);
+
+                minutes += 15;
+                if (minutes >= 60) {
+                    minutes = 0;
+                }
+
+                minutesEl.innerText = minutes.toString().padStart(2, '0');
+            }
+
+            function decrementMinutes() {
+                const minutesEl = document.getElementById('meeting-new-minutes');
+                let minutes = Number(minutesEl.innerText);
+
+                minutes -= 15;
+                if (minutes < 0) {
+                    minutes = 45;
+                }
+
+                minutesEl.innerText = minutes.toString().padStart(2, '0');
+            }
+
+            function addMeeting() {
+                const hoursEl = document.getElementById('meeting-new-hours');
+                const minutesEl = document.getElementById('meeting-new-minutes');
+
+                const hours = Number(hoursEl.innerText);
+                const minutes = Number(minutesEl.innerText);
+
+                meetings.push({
+                    hours: hours,
+                    minutes: minutes
+                });
+
+                updateMeetingElements();
+            }
+
+            function createMeetingElement(meeting, idx) {
+                const meetingEl = document.createElement('div');
+                meetingEl.dataset['idx'] = idx;
+                meetingEl.classList.add('meeting');
+
+                const deleteEl = document.createElement('button');
+                deleteEl.innerText = '✗';
+                deleteEl.dataset['idx'] = idx;
+                deleteEl.addEventListener('click', handleDelete);
+                meetingEl.appendChild(deleteEl);
+
+                const infoEl = document.createElement('div');
+                infoEl.classList.add('meeting-info');
+                meetingEl.appendChild(infoEl);
+
+                const scheduleEl = document.createElement('div');
+                scheduleEl.classList.add('meeting-schedule');
+                scheduleEl.innerText = formatTime(meeting.hours, meeting.minutes);
+                infoEl.appendChild(scheduleEl);
+
+                const startDelay = meeting.hours * 60 + meeting.minutes;
+                const remainingEl = document.createElement('div');
+                remainingEl.dataset['delay'] = startDelay;
+                remainingEl.classList.add('meeting-remaining');
+                infoEl.appendChild(remainingEl);
+
+                remainingLabels.push(remainingEl);
+
+                return meetingEl;
+            }
+
+            function updateMeetingElements() {
+                const listEl = document.getElementById('meeting-list');
+                const meetingElements = document.querySelectorAll('.meeting');
+                meetingElements.forEach((meetingEl) => {
+                    meetingEl.parentElement.removeChild(meetingEl);
+                });
+                remainingLabels = [];
+
+                meetings.forEach((meeting, idx) => {
+                    listEl.appendChild(createMeetingElement(meeting, idx));
+                });
+
+                refreshAllTimeLabels();
+            }
+
+            function refreshAllTimeLabels() {
+                const now = new Date(Date.now());
+                refreshCalendar(now);
+
+                remainingLabels.forEach((label) => refreshRemainingLabel(now, label));
+            }
+
+            function refreshCalendar(now) {
+                const calendarDateEl = document.getElementById('calendar-date');
+                const calendarTimeEl = document.getElementById('calendar-time');
+
+                calendarDateEl.innerText = now.toDateString();
+
+                const hh = now.getHours().toString().padStart(2, '0');
+                const mm = now.getMinutes().toString().padStart(2, '0');
+                calendarTimeEl.innerText = `${hh}:${mm}`;
+            }
+
+            function refreshRemainingLabel(now, el) {
+                const delay = Number(el.dataset['delay']);
+                const nowDelay = now.getHours() * 60 + now.getMinutes();
+                const delta = nowDelay - delay;
+
+                const parentMeeting = getParentMeetingElement(el);
+
+                if (delta === 0) {
+                    el.innerText = 'Now';
+                } else if (delta < 0) {
+                    // meeting is coming
+                    el.innerText = `In ${formatDelay(Math.abs(delta))}`;
+                    parentMeeting.classList.remove('meeting_past');
+                } else {
+                    // meeting is overdue
+                    el.innerText = `${formatDelay(Math.abs(delta))} ago`;
+                    parentMeeting.classList.add('meeting_past');
+                }
+            }
+
+            function formatDelay(delay) {
+                const hours = Math.floor(delay / 60);
+                const minutes = delay - (hours * 60);
+                
+                const hh = hours.toString().padStart(2, '0');
+                const mm = minutes.toString().padStart(2, '0');
+                return `${hh}:${mm}`;
+            }
+
+            function getParentMeetingElement(el) {
+                const isMeeting = el.parentElement.className.split(' ').some((c) => c === 'meeting');
+                if (isMeeting) {
+                    return el.parentElement;
+                }
+                return getParentMeetingElement(el.parentElement);
+            }
+
+            updateMeetingElements();
+
+            setInterval(() => refreshAllTimeLabels(), 5000);
+        </script>
+    </body>
+</html>
