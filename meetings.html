@@ -5,9 +5,13 @@
     </head>
     <body>
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@700&display=swap');
+
             body {
-                background-color: rgb(48, 47, 47);
+                background-color: black;
                 color: white;
+                font-family: 'Inconsolata', monospace;
+                box-sizing: border-box;
             }
 
             .w-full {
@@ -43,14 +47,14 @@
             #calendar-date {
                 width: 75%;
 
-                font-size: xx-large;
+                font-size: xxx-large;
             }
 
             #calendar-time {
                 width: 25%;
                 text-align: right;
 
-                font-size: xx-large;
+                font-size: xxx-large;
             }
 
             #meetings-container {
@@ -63,21 +67,19 @@
 
                 display: flex;
                 flex-direction: column;
+                gap: 0.5em;
             }
 
             #meeting-new {
                 display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                align-content: flex-start;
+                flex-direction: column;
 
                 width: 25%;
                 font-size: xxx-large;
             }
 
             .meeting {
-                background-color: rgb(75, 104, 114);
-                margin: 0.25em;
+                background-color: rgb(61, 105, 141);
                 padding: 0.25em;
 
                 display: flex;
@@ -85,13 +87,32 @@
                 align-items: stretch;
             }
 
-            .meeting.meeting_past {
-                background-color: rgb(61, 61, 61);
+            .meeting_past {
+                background-color: rgb(60, 60, 60);
+            }
+
+            .meeting_soon {
+                background-color:rgb(167, 81, 1)
+            }
+
+            .meeting_now {
+                background-color:rgb(146, 1, 1)
             }
 
             .meeting-info {
                 padding: 0.5em;
-                font-size: x-large;
+                font-size: xx-large;
+                display: flex;
+                flex-grow: 1;
+                align-items: center;
+            }
+
+            .meeting-schedule {
+                width: 25%;
+            }
+
+            .meeting-remaining {
+                font-size: smaller;
             }
 
             #meeting-new > div {
@@ -108,25 +129,21 @@
                 <div id="meeting-list">
                     <!-- this is filled programmatically -->
                 </div>
-                <div id="meeting-new">
-                    <div class="w-half">
-                        <button onclick="incrementHours()">▲</button>
+                <div id="meeting-new" style="gap: 1em; align-items: center;">
+                    <div id="meeting-new-time" style="display: flex; flex-direction: row; gap: 0.5em;">
+                        <div id="meeting-new-hours-container" style="display: flex; flex-direction: column; gap: 0.5em; align-items: center;">
+                            <button onclick="incrementHours()">▲</button>
+                            <div id="meeting-new-hours" class="w-half">08</div>
+                            <button onclick="decrementHours()">▼</button>
+                        </div>
+                        <div id="meeting-new-minutes-container" style="display: flex; flex-direction: column; gap: 0.5em; align-items: center;">
+                            <button onclick="incrementMinutes()">▲</button>
+                            <div id="meeting-new-minutes" class="w-half">00</div>
+                            <button onclick="decrementMinutes()">▼</button>
+                        </div>
                     </div>
-                    <div class="w-half">
-                        <button onclick="incrementMinutes()">▲</button>
-                    </div>
-
-                    <div id="meeting-new-hours" class="w-half">08</div>
-                    <div id="meeting-new-minutes" class="w-half">00</div>
-
-                    <div class="w-half">
-                        <button onclick="decrementHours()">▼</button>
-                    </div>
-                    <div class="w-half">
-                        <button onclick="decrementMinutes()">▼</button>
-                    </div>
-                    <div class="w-full">
-                        <button onclick="addMeeting()">Add</button>
+                    <div id="meeting-new-toolbar">
+                        <button onclick="addMeeting()">+</button>
                     </div>
                 </div>
             </div>
@@ -247,6 +264,14 @@
             }
 
             function updateMeetingElements() {
+                const sortMeetingsDescending = (a, b) => {
+                    const delayA = a.hours * 60 + a.minutes;
+                    const delayB = b.hours * 60 + b.minutes;
+                    return delayA - delayB;
+                };
+
+                meetings.sort(sortMeetingsDescending);
+
                 const listEl = document.getElementById('meeting-list');
                 const meetingElements = document.querySelectorAll('.meeting');
                 meetingElements.forEach((meetingEl) => {
@@ -286,16 +311,42 @@
 
                 const parentMeeting = getParentMeetingElement(el);
 
-                if (delta === 0) {
+                const formattedTimeDelta = formatDelay(Math.abs(delta));
+
+                if (delta > 0) {
+                    // Meeting is overdue
+                    el.innerText = `${formattedTimeDelta} ago`;
+                    setMeetingVariant(parentMeeting, 'meeting_past');
+                } else if (delta === 0) {
+                    // Meeting is now
                     el.innerText = 'Now';
-                } else if (delta < 0) {
-                    // meeting is coming
-                    el.innerText = `In ${formatDelay(Math.abs(delta))}`;
-                    parentMeeting.classList.remove('meeting_past');
+                    setMeetingVariant(parentMeeting, 'meeting_now');
+                } else if (delta > -5) {
+                    // Meeting is soon
+                    el.innerText = `Get ready, in ${formattedTimeDelta}`;
+                    setMeetingVariant(parentMeeting, 'meeting_soon');
                 } else {
-                    // meeting is overdue
-                    el.innerText = `${formatDelay(Math.abs(delta))} ago`;
-                    parentMeeting.classList.add('meeting_past');
+                    // Meeting is coming
+                    el.innerText = `In ${formattedTimeDelta}`;
+                    setMeetingVariant(parentMeeting, '');
+                }
+            }
+
+            function setMeetingVariant(el, variantClass) {
+                const variants = [
+                    'meeting_past',
+                    'meeting_now',
+                    'meeting_soon'
+                ];
+
+                variants.forEach((v) => {
+                    if (v !== variantClass) {
+                        el.classList.remove(v);
+                    }
+                });
+
+                if (variantClass !== '') {
+                    el.classList.add(variantClass);
                 }
             }
 
